@@ -20,7 +20,11 @@
 
 `post_contents = " ".join(self.okt.nouns(post_contents))`
 
+제목과 본문을 합친 텍스트에서 한국어 명사만 추출해 학습 당시 입력 형식과 동일하게 맞춥니다.
+
 `proba = self.model.predict_proba([post_contents])[0]`
+
+분류 모델로 각 태그별 확률을 계산한 뒤, 내림차순 정렬해 상위 3개 클래스를 LabelEncoder로 태그명에 매핑합니다.
 
 ## 📊 조회수 예측 AI
 
@@ -38,7 +42,11 @@
 
 `sim_scores = cosine_similarity(new_post_matrix, self.tfidf_matrix)`
 
+새 글의 TF-IDF 벡터와 부팅 시 만들어둔 기존 피드 매트릭스 사이의 코사인 유사도를 한 번에 계산합니다.
+
 `predicted_view_count = np.dot(new_post_sim_scores, sim_view_counts) / new_post_sim_scores.sum()`
+
+상위 5개 유사 게시글의 실제 조회수를 유사도 점수로 가중평균하여 새 글의 예상 조회수를 산출합니다.
 
 ## 💬 피드 챗봇 AI
 
@@ -55,11 +63,26 @@
 - 캐시 미스 시 LLM 호출 후 질문·답변을 Redis에 저장
 - 응답을 한 글자씩 sleep 출력해 콘솔에서 타이핑 효과 확인
 
-### 핵심 코드
+### 코드
+
+`text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=30)`
+
+피드 본문을 200자 단위로 자르되 30자씩 겹치도록 분할해 검색 시 문맥이 잘리지 않도록 합니다.
+
+`self.feed_chain = ({"context": feed_retriever, "question": RunnablePassthrough()} | feed_prompt | feed_llm | StrOutputParser())`
+
+retriever → 프롬프트 → LLM → 출력 파서로 이어지는 RAG 체인을 LCEL 파이프라인으로 묶어 둡니다.
 
 `results = vector_db.similarity_search_with_score(question, k=1)`
 
+Redis 시맨틱 캐시에서 현재 질문과 가장 비슷한 과거 질문 1개를 거리 점수와 함께 가져옵니다.
+
+`if results and results[0][1] <= settings.cache_score_threshold:`
+
+거리 점수가 임계치 이하이면 캐시 히트로 판정해 LLM 호출을 생략하고 저장된 답변을 그대로 반환합니다.
+
 `result = await self.feed_chain.ainvoke(question)`
+
 
 ## 🧩 AI별 핵심 요약
 
