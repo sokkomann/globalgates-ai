@@ -92,7 +92,7 @@ GlobalGates는 무역 기반 비즈니스 소셜 마켓 플랫폼으로, 국내 
 
 ---
 
-## AI-1. - 광고 등록 시, 태그 예측: Okt, CountVectorize, NB
+## AI-1. - 광고 등록 시, 태그 예측: Okt, CountVectorize, MultinomialNB
 
 > **목적**: 광고를 등록하는 동안 광고의 제목과 본문을 분석해 어울리는 태그 3개를 즉시 제안
 
